@@ -25,6 +25,10 @@ def set_stopIDS():
             try:
                 #if stop['stopId'] not in allstops_hashtable:
                 stopid = stop['stopId']
+
+                if stop['title'] in list(allstops_hashtable.keys()):
+                    if allstops_hashtable[stop['title']][0] != stopid:
+                        print("Title is: {} Old stopdId {} new stopId {}".format(stop['title'], allstops_hashtable[stop['title']][0], stopid))
                 coordinate = (float(stop['lat']), float(stop['lon']))
                 allstops_hashtable[stop['title']] = [stopid, coordinate]
             except:
@@ -71,7 +75,6 @@ def define_campuses():
 
 
 def display_campus_stops(campus):
-
     if campus == 'Busch':
         title = 'Busch Bus Stops'
         options = list(buschtable.keys())
