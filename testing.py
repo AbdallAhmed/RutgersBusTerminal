@@ -77,28 +77,54 @@ def display_campus_stops(campus):
         options = list(buschtable.keys())
         options.sort()
         option, index = pick(options, title)
+        return_all_buses_for_stop(option)
     elif campus == 'Livingston':
         title = 'Livi Bus Stops'
         options = list(livitable.keys())
         options.sort()
         option, index = pick(options, title)
+        return_all_buses_for_stop(option)
     elif campus == 'College Ave':
         title = 'College Ave Bus Stops'
         options = list(cactable.keys())
         options.sort()
         option, index = pick(options, title)
+        return_all_buses_for_stop(option)
     elif campus == 'C/D':
         title = 'Cook Doug Stops'
         options = list(cdtable.keys())
         options.sort()
         option, index = pick(options, title)
+        return_all_buses_for_stop(option)
     else:
         title = 'Other Stops'
         options = list(othertable.keys())
         options.sort()
         option, index = pick(options, title)
+        return_all_buses_for_stop(option)
 
+def return_all_buses_for_stop(stopname):
+    global allstops_hashtable
+    general_url = 'http://webservices.nextbus.com/service/publicJSONFeed?a=rutgers&command=predictions&stopId={}'
 
+    stop = allstops_hashtable.get(stopname)
+    stopid = stop[0]
+
+    page = urlopen(general_url.format(stopid))
+    json_page = json.load(page)
+
+    print("Predictions for {} are as follows: ".format(stopname))
+    for route in json_page['predictions']:
+        try:
+            route['direction']
+            print()
+            print("============{}===========".format(route['routeTitle']))
+            for active_routes in route['direction']['prediction']:
+                print("vehicle number {} is going to be there in {} miutes".format(active_routes['vehicle'], active_routes['minutes']))
+        except:
+            print("============{}===========".format(route['routeTitle']))
+            print("No predictions")
+            continue
 
 def main():
     global allstops_hashtable
