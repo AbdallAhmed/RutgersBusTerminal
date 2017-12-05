@@ -16,26 +16,35 @@ othertable = {}
 def set_stopIDS():
     '''Create a dictionary of all stops, their ids, and their long, lat. If a stop does not have an id it is not included.'''
     global allstops_hashtable
-    find_stopid = 'http://webservices.nextbus.com/service/publicJSONFeed?a=rutgers&command=routeConfig'
+
+    #This is the URL we are requesting. As according to the nextbusAPI if we add the &terse we half the amount of data coming back
+    find_stopid = 'http://webservices.nextbus.com/service/publicJSONFeed?a=rutgers&command=routeConfig&terse'
     page = urlopen(find_stopid)
     json_page = json.load(page)
 
+
     for route in json_page['route']:
         for stop in route['stop']:
+            #not all stops have an ID so we are going to try and see if the stopid exists
             try:
-                #if stop['stopId'] not in allstops_hashtable:
                 stopid = stop['stopId']
 
-                if stop['title'] in list(allstops_hashtable.keys()):
-                    if allstops_hashtable[stop['title']][0] != stopid:
-                        print("Title is: {} Old stopdId {} new stopId {}".format(stop['title'], allstops_hashtable[stop['title']][0], stopid))
-                coordinate = (float(stop['lat']), float(stop['lon']))
-                allstops_hashtable[stop['title']] = [stopid, coordinate]
+                #This becomes confusing as a stop can have multiple IDs
+
+                if stop['title'] not in list(allstops_hashtable.keys()):
+                    coordinate = (float(stop['lat']), float(stop['lon']))
+                    #We are adding the stopid in as a list so that we can make room for multiples
+                    allstops_hashtable[stop['title']] = [[stopid], coordinate]
+                elif stop['title'] in list(allstops_hashtable.keys()) and stopid not in allstops_hashtable[stop['title']][0]:
+                    #if we have the stop but do not have the stopid we have to add it
+                    allstops_hashtable[stop['title']][0].append(stopid)
             except:
                 continue
 
 def define_campuses():
-    '''Attempts to breakup stops to different dictionaries based off of campus'''
+    '''Attempts to breakup stops to different dictionaries based off of campus.
+    Instead of just hardcoding the campuses we attempt to split it up goegraphically.
+    This is just in case there are new bus stops added so they automatically gropu to the appropriate campus'''
     global allstops_hashtable
     global buschtable
     global livitable
@@ -43,18 +52,20 @@ def define_campuses():
     global cdtable
     global othertable
 
-    #each of these polygons was created using: https://multiplottr.com
+    #Each of these polygons was created using: https://multiplottr.com
     busch = Polygon([(40.521760, -74.488335), (40.511907, -74.459667), (40.525217, -74.452543), (40.528936, -74.467564)])
     livingston = Polygon([(40.524174, -74.446020), (40.517339, -74.431193), (40.523815, -74.427953), (40.530763, -74.440956)])
     collegeave = Polygon([(40.499116, -74.462543), (40.492328, -74.446235), (40.499801, -74.438381), (40.508350, -74.453144)])
     cookdoug = Polygon([(40.478521, -74.453616), (40.466376, -74.425120), (40.480251, -74.414349), (40.490826, -74.440227)])
 
+    #Temp list that will be used for list logic later on
     busch_list = []
     livi_list = []
     collegeave_list = []
     cookdoug_list = []
     other_list = []
 
+    #Every stop has a point that is mapped to it and then
     for key, value in allstops_hashtable.items():
         if busch.contains(Point(value[1])):
             busch_list.append(key)
@@ -75,6 +86,7 @@ def define_campuses():
 
 
 def display_campus_stops(campus):
+    '''Handles displaying the different stops for each campus'''
     if campus == 'Busch':
         title = 'Busch Bus Stops'
         options = list(buschtable.keys())
@@ -107,27 +119,38 @@ def display_campus_stops(campus):
         return_all_buses_for_stop(option)
 
 def return_all_buses_for_stop(stopname):
+    '''Takes the stop name and then gets predictions for the stop'''
     global allstops_hashtable
     general_url = 'http://webservices.nextbus.com/service/publicJSONFeed?a=rutgers&command=predictions&stopId={}'
 
     stop = allstops_hashtable.get(stopname)
-    stopid = stop[0]
-
-    page = urlopen(general_url.format(stopid))
-    json_page = json.load(page)
+    stopids = stop[0]
 
     print("Predictions for {} are as follows: ".format(stopname))
-    for route in json_page['predictions']:
-        try:
-            route['direction']
-            print()
-            print("============{}===========".format(route['routeTitle']))
-            for active_routes in route['direction']['prediction']:
-                print("vehicle number {} is going to be there in {} miutes".format(active_routes['vehicle'], active_routes['minutes']))
-        except:
-            print("============{}===========".format(route['routeTitle']))
-            print("No predictions")
-            continue
+    for stopid in stopids:
+        page = urlopen(general_url.format(stopid))
+        json_page = json.load(page)
+
+        if isinstance(json_page['predictions'], list):
+            for route in json_page['predictions']:
+                try:
+                    route['direction']
+                    print()
+                    print("============{}===========".format(route['routeTitle']))
+                    for active_routes in route['direction']['prediction']:
+                        print("vehicle number {} is going to be there in {} miutes".format(active_routes['vehicle'], active_routes['minutes']))
+                except:
+                    continue
+        else:
+            try:
+                fullvar = json_page['predictions']
+                print()
+                print("============{}===========".format(fullvar['routeTitle']))
+                for active_routes in fullvar['direction']['prediction']:
+                    print("vehicle number {} is going to be there in {} miutes".format(active_routes['vehicle'], active_routes['minutes']))
+            except:
+                continue
+
 
 def main():
     global allstops_hashtable
