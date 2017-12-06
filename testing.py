@@ -44,7 +44,7 @@ def set_stopIDS():
 def define_campuses():
     '''Attempts to breakup stops to different dictionaries based off of campus.
     Instead of just hardcoding the campuses we attempt to split it up goegraphically.
-    This is just in case there are new bus stops added so they automatically gropu to the appropriate campus'''
+    This is just in case there are new bus stops added so they automatically group to the appropriate campus'''
     global allstops_hashtable
     global buschtable
     global livitable
@@ -78,6 +78,7 @@ def define_campuses():
         else: other_list.append(key)
 
 
+    #Use list logic to constructure dictionaries that are per campus
     buschtable = {k: allstops_hashtable[k] for k in busch_list}
     livitable = {k: allstops_hashtable[k] for k in livi_list}
     cactable = {k: allstops_hashtable[k] for k in collegeave_list}
@@ -131,6 +132,9 @@ def return_all_buses_for_stop(stopname):
         page = urlopen(general_url.format(stopid))
         json_page = json.load(page)
 
+        #the json from nextbus is not entirely well formed
+        #if a stopid only has one route it will return a dictionary of informaiton whereas if there are multiple it will return a list of list
+        #We are checking to see if it is a list or dictionary here
         if isinstance(json_page['predictions'], list):
             for route in json_page['predictions']:
                 try:
@@ -165,27 +169,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-# quote_page = 'http://webservices.nextbus.com/service/publicXMLFeed?a=rutgers&command=vehicleLocations'
-# json_url = 'http://webservices.nextbus.com/service/publicJSONFeed?a=rutgers&command=vehicleLocations'
-#
-# test_url = 'http://webservices.nextbus.com/service/publicJSONFeed?a=rutgers&command=predictions&stopId=1029'
-# page = urlopen(test_url)
-# # soup = BeautifulSoup(page, 'lxml')
-# # test = soup.find_all('vehicle')
-#
-#
-# data = json.load(page)
-# pprint(data)
-
-# for vehicle in data['vehicle']:
-#     print(vehicle['routeTag'] + " " + vehicle['speedKmHr'])
-
-
-# name_box = soup.find('h1', attrs={'class': 'name'})
-# name = name_box.text.strip()
-# print name
-#
-# price_box = soup.find('div', attrs={'class':'price'})
-# price = price_box.text
-# print price
